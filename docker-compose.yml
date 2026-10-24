@@ -1,0 +1,59 @@
+# Kuri on ONE server (e.g. an AWS EC2 instance):
+#   caddy  — HTTPS (free Let's Encrypt certificate, auto-renewed) on ports 80/443
+#   app    — Kuri: API /api, admin panel /admin, kiosk app /
+#   mongo  — MongoDB 7 (not reachable from the internet)
+# Setup: cp .env.production.example .env  -> edit -> docker compose up -d --build
+# Full guide: deploy/aws/README.md
+
+services:
+  app:
+    build: .
+    image: kuri:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MONGO_URI: mongodb://mongo:27017/kuri
+      UPLOAD_DIR: /data/uploads
+      PORT: '5010'
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      mongo:
+        condition: service_healthy
+    logging: &logs
+      driver: json-file
+      options: { max-size: 10m, max-file: '5' }
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', 'db.runCommand({ ping: 1 }).ok']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logs
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+    volumes:
+      - ./deploy/aws/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    logging: *logs
+
+volumes:
+  mongo:
+  uploads:
+  caddy_data:
+  caddy_config:

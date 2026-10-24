@@ -1,0 +1,15 @@
+{
+  "name": "kuri",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kuri - The Digital Oracle: one app (API + admin panel at /admin + kiosk at /)",
+  "scripts": {
+    "install:all": "npm --prefix server ci && npm --prefix kiosk ci && npm --prefix admin ci",
+    "build": "npm --prefix kiosk run build && npm --prefix admin run build",
+    "start": "npm --prefix server start",
+    "test": "npm --prefix kiosk test && npm --prefix server test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
